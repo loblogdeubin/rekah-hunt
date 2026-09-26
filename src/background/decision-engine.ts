@@ -52,7 +52,7 @@ export function jevError(error: unknown): GitsError {
 export async function testJevConnection(apiKey: string): Promise<void> {
   try {
     const result = await ask(
-      { purpose: 'Gits connection test', product: 'local business research' },
+      { purpose: 'Rekah Hunt connection test', product: 'local business research' },
       { ready: 'Is this product about local business research?' },
       options(apiKey),
     )
@@ -115,8 +115,8 @@ export class JevDecisionEngine implements DecisionEngine {
       ) {
         throw new Error('Invalid Jev response')
       }
-      const relevant = answers.relevance.chance >= 0.7
-      const qualified = relevant && answers.qualification.chance >= 0.7
+      const relevant = answers.relevance.chance >= 0.6
+      const qualified = relevant && answers.qualification.chance >= 0.6
       const uncertain
         = answers.relevance.chance > 0.3 && answers.qualification.chance > 0.3
       const reasons = {

@@ -51,9 +51,10 @@ export class GoogleMapsExecutor implements MapsExecutor {
     read: () => T | undefined | null | false,
     expected: string,
     diagnose?: () => string,
+    timeoutMs = 20000,
   ): Promise<T> {
     const start = Date.now()
-    while (Date.now() - start < 20000) {
+    while (Date.now() - start < timeoutMs) {
       this.check()
       const value = read()
       if (value)
@@ -62,7 +63,7 @@ export class GoogleMapsExecutor implements MapsExecutor {
     }
     throw new GitsError(
       'maps_selectors',
-      `Google Maps did not show ${expected} within 20 seconds. ${diagnose ? `${diagnose()} ` : ''}Check that the page has loaded, reload the Maps tab, then resume.`,
+      `Google Maps did not show ${expected} within ${timeoutMs / 1000} seconds. ${diagnose ? `${diagnose()} ` : ''}Check that the page has loaded, reload the Maps tab, then resume.`,
     )
   }
 
@@ -213,7 +214,12 @@ export class GoogleMapsExecutor implements MapsExecutor {
         'The selected business changed before it could be read.',
       )
     }
-    await this.waitFor(() => findBusinessHeading(document, candidate.name), 'the business name')
+    await this.waitFor(
+      () => findBusinessHeading(document, candidate.name),
+      'the business name',
+      undefined,
+      30000,
+    )
     this.check()
     if (!sameMapsPlace(location.href, candidate.mapsUrl))
       throw new GitsError('maps_extraction', 'The selected business changed before it could be read.')

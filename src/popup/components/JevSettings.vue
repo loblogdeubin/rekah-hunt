@@ -28,7 +28,7 @@ function connect() {
         {{ connection.connected ? "Jev connected" : "Connect Jev" }}
       </h2>
       <p class="gits-muted text-13px">
-        Gits uses Jev to decide which businesses are worth turning into leads.
+        Rekah Hunt uses Jev to decide which businesses are worth turning into leads.
       </p>
     </div>
     <form class="flex flex-col gap-18px" @submit.prevent="connect">
@@ -69,7 +69,7 @@ function connect() {
       <p class="gits-muted text-12px">
         Connection tests make one Jev request outside research budgets.
       </p>
-      <button class="gits-button min-h-48px bg-primary text-black font-semibold" :disabled="busy || running">
+      <button class="gits-button-primary min-h-48px font-semibold" :disabled="busy || running">
         {{
           busy
             ? "Testing connection…"
@@ -137,7 +137,7 @@ function connect() {
       <p class="gits-muted text-12px">
         Engine and budget changes apply to the next search.
       </p>
-      <button class="gits-button gits-panel" :disabled="busy">
+      <button class="gits-button-secondary" :disabled="busy">
         Save settings
       </button>
     </form>

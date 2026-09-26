@@ -16,6 +16,9 @@ export interface SearchConfig {
   filters: {
     withoutWebsite: boolean
     activeBusiness: boolean
+    fewReviews: boolean
+    incompleteProfile: boolean
+    withoutPhone: boolean
     minimumRating?: number
   }
   decisionLimit: number
@@ -31,6 +34,7 @@ export interface LeadCandidate {
   rating?: number
   reviewCount?: number
   website?: string | null
+  instagramUrl?: string | null
   phone?: string | null
   mapsUrl?: string
   description?: string

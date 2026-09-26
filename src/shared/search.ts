@@ -5,8 +5,14 @@ export const defaultConfig: SearchConfig = {
   niche: '',
   location: '',
   keywords: [],
-  targetLeadCount: 25,
-  filters: { withoutWebsite: true, activeBusiness: true },
+  targetLeadCount: 50,
+  filters: {
+    withoutWebsite: false,
+    activeBusiness: true,
+    fewReviews: false,
+    incompleteProfile: false,
+    withoutPhone: false,
+  },
   decisionLimit: 100,
   engine: 'jev',
 }
@@ -24,7 +30,7 @@ export function validateConfig(config: SearchConfig) {
     || config.keywords.some(k => typeof k !== 'string' || k.length > 80)
     || !Number.isInteger(config.targetLeadCount)
     || config.targetLeadCount < 1
-    || config.targetLeadCount > 500
+    || config.targetLeadCount > 50
     || !Number.isInteger(config.decisionLimit)
     || config.decisionLimit < 1
     || config.decisionLimit > 1000
@@ -32,6 +38,9 @@ export function validateConfig(config: SearchConfig) {
     || !config.filters
     || typeof config.filters.withoutWebsite !== 'boolean'
     || typeof config.filters.activeBusiness !== 'boolean'
+    || typeof config.filters.fewReviews !== 'boolean'
+    || typeof config.filters.incompleteProfile !== 'boolean'
+    || typeof config.filters.withoutPhone !== 'boolean'
     || (config.filters.minimumRating !== undefined
       && (!Number.isFinite(config.filters.minimumRating)
         || config.filters.minimumRating < 0
@@ -39,20 +48,18 @@ export function validateConfig(config: SearchConfig) {
   ) {
     throw new GitsError(
       'invalid_config',
-      'Enter a niche, location, valid lead target (1–500), and decision limit (1–1000).',
+      'Enter a niche, location, valid lead target (1–50), and decision limit (1–1000).',
     )
   }
 }
 export function createSession(config: SearchConfig): SearchSession {
   validateConfig(config)
   const queries = [
-    ...new Set([
-      `${config.niche} ${config.location}`,
-      ...config.keywords
-        .filter(k => k.trim())
-        .map(k => `${config.niche} ${k.trim()} ${config.location}`),
-    ]),
-  ]
+    ...new Set(
+      ['', ...config.keywords, 'terdekat', 'sekitar', 'terbaik', 'rekomendasi']
+        .map(keyword => `${config.niche} ${keyword.trim()} ${config.location}`.replace(/\s+/g, ' ').trim()),
+    ),
+  ].slice(0, 5)
   return {
     ...structuredClone(config),
     id: crypto.randomUUID(),
@@ -90,13 +97,41 @@ export function filterCandidate(
   if (config.filters.withoutWebsite && candidate.website === undefined)
     return 'Website status could not be verified'
   if (
+    config.filters.fewReviews
+    && candidate.reviewCount !== undefined && candidate.reviewCount > 10
+  ) {
+    return 'More than 10 reviews'
+  }
+  if (
+    config.filters.incompleteProfile
+    && candidate.category
+    && candidate.address
+    && candidate.rating !== undefined
+    && candidate.reviewCount !== undefined
+  ) {
+    return 'Google Maps profile is complete'
+  }
+  if (config.filters.withoutPhone && candidate.phone)
+    return 'Phone listed'
+  if (
     config.filters.minimumRating !== undefined
     && (candidate.rating === undefined
       || candidate.rating < config.filters.minimumRating)
   ) {
     return 'Below minimum rating or rating unavailable'
   }
-  if (config.filters.activeBusiness && candidate.businessStatus === 'closed')
-    return 'Business marked closed'
+  if (config.filters.activeBusiness && candidate.businessStatus !== 'active') {
+    return candidate.businessStatus === 'closed'
+      ? 'Business marked closed'
+      : 'Business activity could not be verified'
+  }
+  return null
+}
+
+export function unverifiedFilters(candidate: LeadCandidate, config: SearchConfig): string | null {
+  if (config.filters.fewReviews && candidate.reviewCount === undefined)
+    return 'Review count unavailable; cannot verify the 10-review limit'
+  if (config.filters.withoutPhone && candidate.phone === undefined)
+    return 'Phone status unavailable'
   return null
 }

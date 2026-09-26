@@ -13,16 +13,18 @@ const settings = {
   decisionLimit: 25,
 }
 describe('vue product controls', () => {
-  it('shows the persisted failure and its step when reopening research progress', () => {
+  it('shows the persisted Jev failure, step, and resume action when reopening research progress', async () => {
     const session = createSession({ ...defaultConfig, niche: 'Spa', location: 'Denpasar, Bali' })
-    session.status = 'error'
-    session.errorCode = 'maps_connection'
-    session.message = 'Reload the Google Maps tab, then resume.'
+    session.status = 'paused'
+    session.errorCode = 'jev_request'
+    session.message = 'Check the connection and retry.'
     const wrapper = mount(ResearchProgress, { props: { session, busy: false } })
     const alert = wrapper.get('[role="alert"]')
     expect(alert.text()).toContain(session.message)
-    expect(alert.text()).toContain('Code: maps_connection')
+    expect(alert.text()).toContain('Code: jev_request')
     expect(alert.text()).toContain('Step: searching')
+    await wrapper.get('button').trigger('click')
+    expect(wrapper.emitted('resume')).toHaveLength(1)
     wrapper.unmount()
   })
   it('submits a typed search brief with configurable rating, target and keyword list', async () => {
@@ -32,7 +34,10 @@ describe('vue product controls', () => {
     await wrapper
       .get('input[placeholder="cafe, specialty coffee"]')
       .setValue('cafe, specialty, ')
-    await wrapper.findAll('input[type="checkbox"]')[2].setValue(true)
+    await wrapper.get('input[aria-label="Few reviews"]').setValue(true)
+    await wrapper.get('input[aria-label="Incomplete Maps profile"]').setValue(true)
+    await wrapper.get('input[aria-label="Without phone listed"]').setValue(true)
+    await wrapper.findAll('input[type="checkbox"]')[5].setValue(true)
     await wrapper.get('input[aria-label="Minimum rating"]').setValue(4.5)
     await wrapper.get('input[aria-describedby="target-hint"]').setValue(10)
     await wrapper.get('form').trigger('submit')
@@ -44,7 +49,13 @@ describe('vue product controls', () => {
       keywords: ['cafe', 'specialty'],
       engine: 'mock',
       decisionLimit: 25,
-      filters: { minimumRating: 4.5, withoutWebsite: true },
+      filters: {
+        minimumRating: 4.5,
+        withoutWebsite: false,
+        fewReviews: true,
+        incompleteProfile: true,
+        withoutPhone: true,
+      },
     })
     wrapper.unmount()
   })

@@ -6,7 +6,7 @@ import type {
   SearchConfig,
   SearchSession,
 } from '../shared/types'
-import { filterCandidate } from '../shared/search'
+import { filterCandidate, unverifiedFilters } from '../shared/search'
 import { GitsError, safeError } from '../shared/errors'
 import { cachedDecision } from './budget-guard'
 
@@ -35,6 +35,21 @@ function enqueue(s: SearchSession, candidates: CandidateRef[]) {
 }
 function record(s: SearchSession, name: string, reason: string) {
   s.activity = [{ name, reason }, ...s.activity].slice(0, 40)
+}
+async function readCandidate(
+  maps: MapsExecutor,
+  candidate: CandidateRef,
+  query: string,
+) {
+  try {
+    return await maps.readBusiness(candidate, query)
+  }
+  catch (error) {
+    if (safeError(error).code !== 'maps_selectors')
+      throw error
+    // Maps can render the place sheet just after its first detail wait expires.
+    return maps.readBusiness(candidate, query)
+  }
 }
 export function allowedAction(
   s: SearchSession,
@@ -90,11 +105,21 @@ export async function researchStep(
         }
         s.message = `Reading ${candidate.name}…`
         await persist()
-        await maps.openBusiness(candidate)
-        await checkpoint()
-        s.current = await maps.readBusiness(candidate, s.queries[s.queryIndex])
-        await checkpoint()
-        s.phase = 'evaluating'
+        try {
+          await maps.openBusiness(candidate)
+          await checkpoint()
+          s.current = await readCandidate(maps, candidate, s.queries[s.queryIndex])
+          await checkpoint()
+          s.phase = 'evaluating'
+        }
+        catch (error) {
+          if (safeError(error).code !== 'maps_selectors')
+            throw error
+          s.seen.push(candidate.id)
+          s.pending.shift()
+          record(s, candidate.name, 'Skipped: Google Maps could not load this business. Continued with the next one.')
+          s.phase = s.pending.length ? 'collecting' : 'continuing'
+        }
         break
       }
       case 'evaluating': {
@@ -106,7 +131,14 @@ export async function researchStep(
         }
         const candidate = s.current
         const filter = filterCandidate(candidate, s, s.seen)
-        if (filter) {
+        const unverified = unverifiedFilters(candidate, s)
+          ?? (s.filters.activeBusiness && candidate.businessStatus !== 'active' && candidate.businessStatus !== 'closed'
+            ? 'Business activity could not be verified'
+            : null)
+        if (unverified) {
+          record(s, candidate.name, `Needs verification: ${unverified}`)
+        }
+        else if (filter) {
           record(s, candidate.name, `Skipped: ${filter}`)
         }
         else {

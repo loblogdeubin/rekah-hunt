@@ -32,9 +32,7 @@ async function cancelMaps(session: SearchSession | null) {
       cancel: true,
     })
   }
-  catch (error) {
-    console.error(`[Cancel Maps Error]:: ${error}`)
-  }
+  catch {}
 }
 
 async function ensureTab(session: SearchSession): Promise<number> {
@@ -201,9 +199,23 @@ export async function handleCommand(command: Command): Promise<Snapshot> {
         if (session.engine === 'jev' && !(await readKey()))
           throw new GitsError('invalid_key', 'Connect Jev first.')
         await ensureTab(session)
-        // Reload the result list after a DOM interruption; keep a fully read candidate for evaluation.
-        if (session.phase !== 'evaluating')
+        if (session.errorCode === 'maps_selectors' && session.phase === 'collecting') {
+          const skipped = session.pending.shift()
+          if (skipped) {
+            session.seen.push(skipped.id)
+            session.activity = [
+              {
+                name: skipped.name,
+                reason: 'Skipped: Google Maps did not finish loading this business. Continued with the next one.',
+              },
+              ...session.activity,
+            ].slice(0, 40)
+          }
+          session.phase = session.pending.length ? 'collecting' : 'continuing'
+        }
+        else if (session.phase !== 'evaluating') {
           session.phase = 'searching'
+        }
         session.status = 'running'
         session.errorCode = undefined
         session.message = 'Resuming research…'

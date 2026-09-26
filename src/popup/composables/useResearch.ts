@@ -75,7 +75,7 @@ export function useResearch() {
     )
     const link = document.createElement('a')
     link.href = url
-    link.download = `gits-${session.id.slice(0, 8)}.csv`
+    link.download = `rekah-hunt-${session.id.slice(0, 8)}.csv`
     link.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }

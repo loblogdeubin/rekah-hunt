@@ -43,6 +43,14 @@ const decision = computed(
           Step: {{ session.phase }}
         </p>
       </details>
+      <button
+        v-if="session.status === 'paused' || session.status === 'error'"
+        class="gits-button-primary min-h-48px font-semibold"
+        :disabled="busy"
+        @click="$emit('resume')"
+      >
+        Resume research
+      </button>
     </div>
     <div class="flex items-center gap-14px">
       <progress
@@ -120,14 +128,14 @@ const decision = computed(
     <div class="flex items-center justify-between gap-10px [&>button]:flex-1">
       <button
         v-if="session.status === 'running'"
-        class="gits-button gits-panel"
+        class="gits-button-secondary"
         :disabled="busy"
         @click="$emit('pause')"
       >
         Ⅱ Pause
-      </button><button v-else class="gits-button min-h-48px bg-primary text-black font-semibold" :disabled="busy" @click="$emit('resume')">
+      </button><button v-else-if="session.status === 'paused'" class="gits-button-primary min-h-48px font-semibold" :disabled="busy" @click="$emit('resume')">
         Resume
-      </button><button class="gits-button bg-warning text-black" :disabled="busy" @click="$emit('stop')">
+      </button><button class="gits-button-warning" :disabled="busy" @click="$emit('stop')">
         □ Stop
       </button>
     </div>

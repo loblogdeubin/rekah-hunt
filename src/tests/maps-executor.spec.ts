@@ -55,6 +55,40 @@ describe('opening business details', () => {
     await expect(new GoogleMapsExecutor(new AbortController().signal).readBusiness(candidate, 'spa Ubud')).rejects.toMatchObject({ code: 'maps_extraction' })
   })
 
+  it('reads the selected place when Maps formats its visible name differently', async () => {
+    vi.stubGlobal('location', new URL(detailUrl))
+    document.body.innerHTML = '<div role="main"><h1>Spa & Wellness One</h1><button data-item-id="address">Ubud</button></div>'
+
+    await expect(new GoogleMapsExecutor(new AbortController().signal).readBusiness(candidate, 'spa Ubud')).resolves.toMatchObject({
+      name: 'Spa & Wellness One',
+      address: 'Ubud',
+    })
+  })
+
+  it('allows a slow business title to render before reading details', async () => {
+    vi.stubGlobal('location', new URL(detailUrl))
+    const work = new GoogleMapsExecutor(new AbortController().signal).readBusiness(candidate, 'spa Ubud')
+
+    await vi.advanceTimersByTimeAsync(20500)
+    document.body.innerHTML = '<div role="main"><h1>Spa One</h1></div>'
+    await vi.advanceTimersByTimeAsync(200)
+
+    await expect(work).resolves.toMatchObject({ name: 'Spa One' })
+  })
+
+  it('reads a matching business when Maps changes title punctuation', async () => {
+    const punctuationCandidate = {
+      ...candidate,
+      name: 'Bengkel Mobil Jogja 24 Jam : Jet Auto Fix',
+    }
+    vi.stubGlobal('location', new URL(detailUrl))
+    document.body.innerHTML = '<div role="main"><h1>Bengkel Mobil Jogja 24 Jam: Jet Auto Fix</h1></div>'
+
+    await expect(new GoogleMapsExecutor(new AbortController().signal).readBusiness(punctuationCandidate, 'bengkel Jogja')).resolves.toMatchObject({
+      name: 'Bengkel Mobil Jogja 24 Jam: Jet Auto Fix',
+    })
+  })
+
   it('rejects navigation away while waiting for the business title', async () => {
     vi.stubGlobal('location', new URL(detailUrl))
     const result = expect(new GoogleMapsExecutor(new AbortController().signal).readBusiness(candidate, 'spa Ubud')).rejects.toMatchObject({ code: 'maps_extraction' })

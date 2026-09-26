@@ -71,6 +71,29 @@ beforeEach(() => {
   })
 })
 describe('background controller', () => {
+  it('skips a timed-out Maps business and resumes with the next queued business', async () => {
+    const session = createSession({ ...defaultConfig, niche: 'Coffee', location: 'Bali', engine: 'mock' })
+    session.tabId = 10
+    session.status = 'error'
+    session.phase = 'collecting'
+    session.errorCode = 'maps_selectors'
+    session.pending = [
+      { id: 'one', name: 'Coffee One', mapsUrl: 'https://www.google.com/maps/place/Coffee' },
+      { id: 'two', name: 'Coffee Two', mapsUrl: 'https://www.google.com/maps/place/Coffee-Two' },
+    ]
+    mock.data['gits.session.v1'] = structuredClone(session)
+
+    expect((await handleCommand({ type: 'resume' })).session).toMatchObject({
+      status: 'running',
+      phase: 'collecting',
+      pending: [session.pending[1]],
+      seen: ['one'],
+    })
+    expect((await handleCommand({ type: 'snapshot' })).session?.activity[0]).toMatchObject({
+      name: 'Coffee One',
+      reason: expect.stringContaining('Continued with the next one'),
+    })
+  })
   it('rejects late writes from before a pause/resume even when the session is running again', async () => {
     const previous = createSession({
       ...defaultConfig,
@@ -174,5 +197,15 @@ describe('background controller', () => {
       }),
     ).rejects.toMatchObject({ code: 'invalid_key' })
     expect(mock.create).not.toHaveBeenCalled()
+  })
+  it('ignores a missing Maps listener while cancelling a session', async () => {
+    const session = createSession({ ...defaultConfig, niche: 'Coffee', location: 'Bali' })
+    session.tabId = 10
+    mock.data['gits.session.v1'] = session
+    mock.cancel.mockRejectedValueOnce(new Error('Receiving end does not exist.'))
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(handleCommand({ type: 'pause' })).resolves.toBeDefined()
+    expect(error).not.toHaveBeenCalled()
   })
 })

@@ -65,6 +65,18 @@ function harness(initial = session()) {
 }
 
 describe('research workflow', () => {
+  it('reports unknown review counts separately and continues without qualifying them', async () => {
+    const s = session()
+    s.filters.fewReviews = true
+    s.phase = 'evaluating'
+    s.current = { ...candidate, reviewCount: undefined }
+    const h = harness(s)
+    const evaluate = vi.spyOn(h.engine, 'evaluateCandidate')
+    await researchStep(s, h)
+    expect(h.read()).toMatchObject({ status: 'running', phase: 'continuing', qualifiedCount: 0 })
+    expect(h.read().activity[0].reason).toContain('Needs verification: Review count unavailable')
+    expect(evaluate).not.toHaveBeenCalled()
+  })
   it('runs across persisted transitions, keeps qualified leads and stops at target without another decision', async () => {
     const h = harness()
     for (let i = 0; i < 8 && h.read().status === 'running'; i++)
@@ -89,6 +101,7 @@ describe('research workflow', () => {
       { rating: 2 },
     ]) {
       const s = session()
+      s.filters.withoutWebsite = true
       s.filters.minimumRating = 4
       s.phase = 'evaluating'
       s.current = { ...candidate, ...change }
@@ -101,6 +114,65 @@ describe('research workflow', () => {
     expect(filterCandidate(candidate, session(), ['one'])).toBe(
       'Duplicate business',
     )
+  })
+  it('filters businesses with strong Maps profiles when weaker profiles are requested', () => {
+    const config = session()
+    config.filters.fewReviews = true
+    expect(filterCandidate({ ...candidate, reviewCount: 11 }, config, [])).toContain('More than 10 reviews')
+
+    config.filters.fewReviews = false
+    config.filters.incompleteProfile = true
+    expect(filterCandidate({ ...candidate, reviewCount: 10 }, config, [])).toBeNull()
+    expect(filterCandidate({ ...candidate, address: 'Ubud', reviewCount: 10 }, config, [])).toContain('Google Maps profile is complete')
+
+    config.filters.incompleteProfile = false
+    config.filters.withoutPhone = true
+    expect(filterCandidate({ ...candidate, reviewCount: 10 }, config, [])).toBe('Phone listed')
+
+    config.filters.withoutPhone = false
+    expect(filterCandidate({ ...candidate, businessStatus: 'unknown' }, config, [])).toBe('Business activity could not be verified')
+  })
+  it('retries a transient Maps detail-selector failure before pausing research', async () => {
+    const s = session()
+    s.phase = 'collecting'
+    s.pending = [{
+      id: candidate.id,
+      name: candidate.name,
+      mapsUrl: 'https://www.google.com/maps/place/Coffee/data=!1sone',
+    }]
+    const h = harness(s)
+    h.maps.readBusiness = vi
+      .fn()
+      .mockRejectedValueOnce(new GitsError('maps_selectors', 'Title still loading'))
+      .mockResolvedValueOnce(candidate)
+
+    await researchStep(s, h)
+
+    expect(h.maps.readBusiness).toHaveBeenCalledTimes(2)
+    expect(h.read()).toMatchObject({ status: 'running', phase: 'evaluating', current: candidate })
+  })
+  it('skips a persistently unreadable Maps business and continues research', async () => {
+    const s = session()
+    s.phase = 'collecting'
+    s.pending = [
+      { id: 'one', name: 'Coffee One', mapsUrl: 'https://www.google.com/maps/place/Coffee/data=!1sone' },
+      { id: 'two', name: 'Coffee Two', mapsUrl: 'https://www.google.com/maps/place/Coffee/data=!1stwo' },
+    ]
+    const h = harness(s)
+    h.maps.readBusiness = vi.fn(async () => {
+      throw new GitsError('maps_selectors', 'Business name did not load')
+    })
+
+    await researchStep(s, h)
+
+    expect(h.maps.readBusiness).toHaveBeenCalledTimes(2)
+    expect(h.read()).toMatchObject({
+      status: 'running',
+      phase: 'collecting',
+      pending: [expect.objectContaining({ id: 'two' })],
+      seen: ['one'],
+    })
+    expect(h.read().activity[0].reason).toContain('Continued with the next one')
   })
   it('reserves calls before dispatch, caches equivalent decisions and cannot exceed the budget', async () => {
     const s = session()
@@ -171,6 +243,7 @@ describe('research workflow', () => {
     const s = session()
     s.phase = 'continuing'
     s.emptyScrolls = 2
+    s.queryIndex = s.queries.length - 1
     const h = harness(s)
     const decision = vi.spyOn(h.engine, 'decideNextAction')
     await researchStep(s, h)
@@ -183,6 +256,7 @@ describe('research workflow', () => {
   it.each(['finish', 'change_query'] as const)('does not let %s discard queued prospects after a website rejection', async (action) => {
     const s = session()
     s.engine = 'jev'
+    s.filters.withoutWebsite = true
     s.keywords = ['specialty']
     s.queries.push('Coffee specialty Bali')
     const h = harness(s)
@@ -238,22 +312,17 @@ describe('research workflow', () => {
     expect(h.read().leads[0].id).toBe(candidate.id)
     expect(h.maps.scrollResults).toHaveBeenCalledOnce()
   })
-  it('tries remaining user queries before finishing with no qualified leads', async () => {
+  it('tries all five configured queries before finishing with no qualified leads', async () => {
     const s = session()
-    s.queries.push('Coffee specialty Bali')
-    s.phase = 'continuing'
-    s.emptyScrolls = 2
     const h = harness(s)
-    h.maps.search = vi.fn(async () => [])
-    vi.spyOn(h.engine, 'decideNextAction').mockResolvedValue('finish')
+    const search = vi.fn(async (_query: string) => [])
+    h.maps.search = search
 
-    await researchStep(h.read(), h)
-    expect(h.read()).toMatchObject({ status: 'running', phase: 'searching', queryIndex: 1 })
-    for (let i = 0; i < 10 && h.read().status === 'running'; i++)
+    for (let i = 0; i < 25 && h.read().status === 'running'; i++)
       await researchStep(h.read(), h)
 
     expect(h.read()).toMatchObject({ status: 'completed', qualifiedCount: 0, pending: [] })
-    expect(h.maps.search).toHaveBeenCalledWith('Coffee specialty Bali')
+    expect(search.mock.calls.map(([query]) => query)).toEqual(s.queries)
     expect(h.read().mockDecisionCount).toBeLessThan(s.decisionLimit)
   })
   it('pauses on a Jev failure without discarding earlier results', async () => {
@@ -272,16 +341,25 @@ describe('research workflow', () => {
       mockDecisionCount: 1,
     })
   })
-  it('uses only the original niche/location and user keywords for query variants', () => {
+  it('creates at most five distinct query variants', () => {
     const s = createSession({
       ...defaultConfig,
       niche: 'Coffee',
       location: 'Bali',
       keywords: ['specialty', 'specialty'],
     })
-    expect(s.queries).toEqual(['Coffee Bali', 'Coffee specialty Bali'])
+    expect(s.queries).toEqual([
+      'Coffee Bali',
+      'Coffee specialty Bali',
+      'Coffee terdekat Bali',
+      'Coffee sekitar Bali',
+      'Coffee terbaik Bali',
+    ])
     expect(() =>
       createSession({ ...defaultConfig, targetLeadCount: Number.NaN }),
+    ).toThrow()
+    expect(() =>
+      createSession({ ...defaultConfig, targetLeadCount: 51 }),
     ).toThrow()
   })
 })

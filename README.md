@@ -1,45 +1,45 @@
 <p align="center">
-  <img src="src/assets/gits-logo.png" alt="Gits logo" width="128" />
+  <img src="src/assets/gits-logo.png" alt="Rekah Hunt logo" width="128" />
 </p>
 
-<h1 align="center">Gits (Get Into The Search)</h1>
+<h1 align="center">Rekah Hunt</h1>
 
 <p align="center">
-  Gits is an open-source browser extension for user-initiated local-business lead research on Google Maps. Configure a niche, location, keywords and filters, review qualified leads and export them to CSV.
+  Rekah Hunt is an open-source browser extension for user-initiated local-business lead research on Google Maps. Configure a niche, location, keywords and filters, review qualified leads and export them to CSV.
 </p>
 
 <p align="center">
   <video src="public/gits-preview.mp4" controls width="720" preload="metadata">
-    <a href="public/gits-preview.mp4">Watch the Gits preview</a>
+    <a href="public/gits-preview.mp4">Watch the Rekah Hunt preview</a>
   </video>
 </p>
 
 <table align="center">
   <tr>
     <td align="center" valign="top" width="50%">
-      <sub>Gits Main Form</sub><br/><br/>
-      <img src="src/assets/gits-form.png" alt="Gits main search form" width="360" />
+      <sub>Rekah Hunt Main Form</sub><br/><br/>
+      <img src="src/assets/gits-form.png" alt="Rekah Hunt main search form" width="360" />
     </td>
     <td align="center" valign="top" width="50%">
-      <sub>Gits Searching Process</sub><br/><br/>
-      <img src="src/assets/gits-process.png" alt="Gits research progress" width="360" />
+      <sub>Rekah Hunt Searching Process</sub><br/><br/>
+      <img src="src/assets/gits-process.png" alt="Rekah Hunt research progress" width="360" />
     </td>
   </tr>
   <tr>
     <td align="center" valign="top" width="50%">
-      <sub>Gits Result</sub><br/><br/>
-      <img src="src/assets/gits-result.png" alt="Gits qualified lead results" width="360" />
+      <sub>Rekah Hunt Result</sub><br/><br/>
+      <img src="src/assets/gits-result.png" alt="Rekah Hunt qualified lead results" width="360" />
     </td>
     <td align="center" valign="top" width="50%">
-      <sub>Gits Settings</sub><br/><br/>
-      <img src="src/assets/gits-setting.png" alt="Gits settings" width="360" />
+      <sub>Rekah Hunt Settings</sub><br/><br/>
+      <img src="src/assets/gits-setting.png" alt="Rekah Hunt settings" width="360" />
     </td>
   </tr>
 </table>
 
 ## Tech Stack
 
-Gits is built with the following tools, with credits to their creators:
+Rekah Hunt is built with the following tools, with credits to their creators:
 
 1. [Vitesse WebExt](https://github.com/antfu-collective/vitesse-webext) - Browser extension starter template by [Anthony Fu](https://github.com/antfu).
 2. [Vue](https://github.com/vuejs/core) - The Progressive JavaScript Framework
@@ -52,18 +52,18 @@ Gits is built with the following tools, with credits to their creators:
 
 ## Install locally
 
-Gits is not yet available on the Chrome Web Store. You can build and install it locally using the instructions below.
+Rekah Hunt is not yet available on the Chrome Web Store. You can build and install it locally using the instructions below.
 
 ```sh
 bun install
 bun run build
 ```
 
-In Chrome 120 or newer, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the generated `extension/` directory. Open Gits from the toolbar. The starter Firefox build path is retained but Firefox behavior has not been validated.
+In Chrome 120 or newer, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the generated `extension/` directory. Open Rekah Hunt from the toolbar. The starter Firefox build path is retained but Firefox behavior has not been validated.
 
 1. Enter your Jev API key in Settings and choose **Connect & Continue**. The connection test makes one direct Jev request.
 2. Set a business niche and location, optional comma-separated keywords, filters and target count.
-3. **Start Research** opens a dedicated Google Maps tab. Keep it open while Gits searches. Closing the popup does not clear or stop the session.
+3. **Start Research** opens a dedicated Google Maps tab. Keep it open while Rekah Hunt searches. Closing the popup does not clear or stop the session.
 4. Pause/resume or stop research; review saved business details and decision summaries.
 5. Export CSV before choosing **New Search**, which replaces the current local result set.
 
@@ -91,7 +91,7 @@ The runner persists every transition and resumes via a 30-second browser alarm a
 
 ## Data, privacy and limits
 
-Your key, settings and active session are stored in browser-local storage, not sync storage. Local storage is not an encrypted vault. The key is sent only directly to `api.typesafe.ai` for authentication; snapshots, logs and CSV exports do not include it. Chromium content scripts are denied local-storage access. Gits has no backend, analytics or cloud account.
+Your key, settings and active session are stored in browser-local storage, not sync storage. Local storage is not an encrypted vault. The key is sent only directly to `api.typesafe.ai` for authentication; snapshots, logs and CSV exports do not include it. Chromium content scripts are denied local-storage access. Rekah Hunt has no backend, analytics or cloud account.
 
 Selected business evidence and your brief are sent to Jev for semantic decisions. Exact duplicate detection, website checks, numeric filters, target counts and CSV generation run locally. Missing data stays unknown. “No website” means no website listed on the loaded Maps details panel, not proof that no website exists elsewhere.
 
@@ -103,4 +103,4 @@ Out of scope: outreach, CRM integration, enrichment, general-purpose LLMs, other
 
 Licensed under the [MIT License](LICENSE).
 
-Copyright (c) 2026 Satya Wikananda for Gits contributions. Original Vitesse WebExt copyright (c) 2021 Anthony Fu and the MIT license notice are retained.
+Copyright (c) 2026 Satya Wikananda for Rekah Hunt contributions. Original Vitesse WebExt copyright (c) 2021 Anthony Fu and the MIT license notice are retained.

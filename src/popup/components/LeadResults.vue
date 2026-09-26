@@ -51,7 +51,7 @@ const counts = computed(() =>
         v-for="item in counts"
         :key="item.priority"
         class="flex flex-col gap-2px rounded-10px p-12px text-center"
-        :class="item.priority === 'high' ? 'bg-primary text-black' : 'gits-panel'"
+        :class="item.priority === 'high' ? '!bg-primary !text-black' : 'gits-panel'"
       >
         <strong class="font-mono text-20px">
           {{ item.count }}
@@ -112,16 +112,30 @@ const counts = computed(() =>
         </details>
       </article>
     </section>
+    <details v-if="session.activity.length" :open="!session.leads.length" class="gits-panel rounded-10px p-12px">
+      <summary class="gits-focus cursor-pointer">
+        Recent decisions and data issues
+      </summary>
+      <p class="gits-muted text-12px">
+        Latest {{ session.activity.length }} decisions (up to 40). Missing data does not prove a business fails your criteria.
+      </p>
+      <ul class="flex flex-col gap-8px">
+        <li v-for="(item, index) in session.activity" :key="index" class="text-13px">
+          <strong>{{ item.name }}</strong>
+          <p>{{ item.reason }}</p>
+        </li>
+      </ul>
+    </details>
     <button
       v-if="!all && session.leads.length > 3"
-      class="gits-button min-h-48px bg-primary text-black font-semibold"
+      class="gits-button-primary min-h-48px font-semibold"
       @click="all = true"
     >
       View All Leads
     </button>
     <div class="flex items-center justify-between gap-10px [&>button]:flex-1">
       <button
-        class="gits-button gits-panel"
+        class="gits-button-secondary"
         :disabled="!session.leads.length"
         @click="$emit('export')"
       >
@@ -129,7 +143,7 @@ const counts = computed(() =>
       </button>
       <button
         v-if="session.status !== 'running'"
-        class="gits-button gits-panel"
+        class="gits-button-secondary"
         :disabled="busy"
         @click="confirmNew = true"
       >
@@ -142,11 +156,11 @@ const counts = computed(() =>
         want to keep first.
       </p>
       <div class="flex items-center justify-between gap-10px">
-        <button class="gits-button gits-panel" @click="confirmNew = false">
+        <button class="gits-button-secondary" @click="confirmNew = false">
           Cancel
         </button>
         <button
-          class="gits-button min-h-48px bg-primary text-black font-semibold" :disabled="busy" @click="$emit('newSearch')"
+          class="gits-button-primary min-h-48px font-semibold" :disabled="busy" @click="$emit('newSearch')"
         >
           Start new search
         </button>

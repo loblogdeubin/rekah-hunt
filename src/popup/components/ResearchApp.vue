@@ -59,13 +59,13 @@ async function start(config: SearchConfig) {
     <header class="gits-border mb-18px flex items-center justify-between gap-16px border-b pb-18px">
       <div class="min-w-0">
         <div class="flex items-start gap-1.5">
-          <img class="mb-8px h-32px w-32px object-contain" :src="logo" alt="gits-logo" width="32" height="32">
+          <img class="mb-8px h-32px w-32px object-contain" :src="logo" alt="Rekah Hunt logo" width="32" height="32">
           <h1 class="text-24px font-bold ">
-            Gits
+            Rekah Hunt
           </h1>
         </div>
         <p class="gits-muted text-12px">
-          Get Into The Search
+          Local business lead research
         </p>
       </div>
       <div class="flex shrink-0 items-center gap-10px">

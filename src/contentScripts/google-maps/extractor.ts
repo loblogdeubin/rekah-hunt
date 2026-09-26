@@ -63,8 +63,9 @@ export function findBusinessHeading(
   root: ParentNode = document,
   name?: string,
 ): HTMLElement | undefined {
-  const normalize = (value: string) =>
-    value.normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase()
+  const words = (value: string) => value.normalize('NFKC').toLocaleLowerCase()
+    .match(/[\p{L}\p{N}]+/gu)?.filter(word => word !== 'and' && word !== 'the') ?? []
+  const expected = name ? words(name) : []
   return [
     ...root.querySelectorAll<HTMLElement>(selectors.businessHeading),
   ].find(
@@ -73,7 +74,7 @@ export function findBusinessHeading(
       && isVisibleMapsElement(heading)
       && Boolean(heading.textContent?.trim())
       && (name === undefined
-        || normalize(heading.textContent ?? '') === normalize(name)),
+        || expected.every(word => words(heading.textContent ?? '').includes(word))),
   )
 }
 
@@ -123,6 +124,22 @@ function labelled(root: ParentNode, selector: string): string | undefined {
   )
 }
 
+export function instagramProfileUrl(value: string): string | undefined {
+  try {
+    let url = new URL(value)
+    if (url.hostname === 'www.google.com' && url.pathname === '/url')
+      url = new URL(url.searchParams.get('q') || url.searchParams.get('url') || '')
+    if (!['instagram.com', 'www.instagram.com'].includes(url.hostname.toLowerCase()))
+      return undefined
+    const handle = url.pathname.split('/').filter(Boolean)[0]
+    if (!handle || !/^[a-z0-9._]+$/i.test(handle)
+      || ['p', 'reel', 'reels', 'stories', 'explore', 'accounts', 'about', 'share'].includes(handle.toLowerCase()))
+      return undefined
+    return `https://www.instagram.com/${handle}/`
+  }
+  catch { return undefined }
+}
+
 export function extractBusiness(
   ref: CandidateRef,
   query: string,
@@ -143,8 +160,9 @@ export function extractBusiness(
   const ratingValue = Number(
     ratingText.match(/\d[.,]\d/)?.[0]?.replace(',', '.'),
   )
-  const reviewsLabel
-    = root.querySelector(selectors.reviews)?.getAttribute('aria-label') ?? ''
+  const reviewsLabel = [...root.querySelectorAll('[aria-label]')]
+    .map(element => element.getAttribute('aria-label') ?? '')
+    .find(label => /^\d[\d,.]* (?:reviews?|ulasan)$/i.test(label.trim().replace(/\s+/g, ' '))) ?? ''
   const reviewDigits = reviewsLabel.match(/[\d,.\s]+/)?.[0]?.replace(/\D/g, '')
   const websiteElement = root.querySelector<HTMLAnchorElement>(
     selectors.website,
@@ -152,6 +170,10 @@ export function extractBusiness(
   const websiteUrl = websiteElement?.href
   const website
     = websiteUrl && /^https?:\/\//i.test(websiteUrl) ? websiteUrl : null
+  const instagramUrl = [...root.querySelectorAll<HTMLAnchorElement>('a[href]')]
+    .filter(link => !link.closest(selectors.feed) && isVisibleMapsElement(link))
+    .map(link => instagramProfileUrl(link.href))
+    .find(Boolean) ?? null
   const closed
     = /permanently closed|temporarily closed|tutup permanen|tutup sementara/i.test(
       body,
@@ -168,6 +190,7 @@ export function extractBusiness(
         : undefined,
     reviewCount: reviewDigits ? Number(reviewDigits) : undefined,
     website,
+    instagramUrl,
     phone: labelled(root, selectors.phone) ?? null,
     mapsUrl: ref.mapsUrl,
     description: text(root, selectors.description),

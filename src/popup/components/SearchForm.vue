@@ -66,6 +66,9 @@ function submit() {
       <legend class="mb-8px text-13px">
         Filters
       </legend>
+      <p class="gits-muted text-12px">
+        All checked filters must match. Unreadable data is marked Needs verification.
+      </p>
       <label class="min-h-24px flex items-center gap-8px">
         <input
           v-model="form.filters.withoutWebsite"
@@ -79,7 +82,34 @@ function submit() {
           class="gits-focus h-18px w-18px shrink-0 accent-primary"
           type="checkbox"
         >
-        Active business
+        Active business only
+      </label>
+      <label class="min-h-24px flex items-center gap-8px">
+        <input
+          v-model="form.filters.fewReviews"
+          class="gits-focus h-18px w-18px shrink-0 accent-primary"
+          type="checkbox"
+          aria-label="Few reviews"
+        >
+        Few reviews (10 or fewer)
+      </label>
+      <label class="min-h-24px flex items-center gap-8px">
+        <input
+          v-model="form.filters.incompleteProfile"
+          class="gits-focus h-18px w-18px shrink-0 accent-primary"
+          type="checkbox"
+          aria-label="Incomplete Maps profile"
+        >
+        Incomplete Maps profile
+      </label>
+      <label class="min-h-24px flex items-center gap-8px">
+        <input
+          v-model="form.filters.withoutPhone"
+          class="gits-focus h-18px w-18px shrink-0 accent-primary"
+          type="checkbox"
+          aria-label="Without phone listed"
+        >
+        Without phone listed
       </label>
       <label class="min-h-24px flex items-center gap-8px">
         <input
@@ -108,7 +138,7 @@ function submit() {
         class="gits-input"
         type="number"
         min="1"
-        max="500"
+        max="50"
         required
         aria-describedby="target-hint"
       >
@@ -116,7 +146,7 @@ function submit() {
         id="target-hint"
         class="gits-muted text-12px"
       >
-        Qualified leads - {{ settings.decisionLimit }} decision call limit
+        Up to 50 qualified leads - {{ settings.decisionLimit }} decision call limit
       </span>
     </label>
 
@@ -124,7 +154,7 @@ function submit() {
       Mock mode · no Jev calls. Business data still comes from Google Maps.
     </p>
 
-    <button class="gits-button min-h-48px bg-primary text-black font-semibold" type="submit" :disabled="busy">
+    <button class="gits-button-primary min-h-48px font-semibold" type="submit" :disabled="busy">
       {{ busy ? "Starting…" : "Start Research" }}
       <span aria-hidden="true" />
     </button>

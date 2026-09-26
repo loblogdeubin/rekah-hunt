@@ -39,13 +39,16 @@ export async function getManifest() {
       'storage',
       'alarms',
     ],
-    host_permissions: ['https://www.google.com/*', 'https://api.typesafe.ai/*'],
+    host_permissions: ['https://www.google.com/*', 'https://api.typesafe.ai/*', 'https://rekah.id/*', 'http://localhost:3000/*', 'http://127.0.0.1:3000/*'],
     minimum_chrome_version: '120',
     content_scripts: [
       {
         matches: [
           'https://www.google.com/maps*',
           'https://www.google.com/sorry/*',
+          'https://rekah.id/admin/lead-discovery*',
+          'http://localhost:3000/admin/lead-discovery*',
+          'http://127.0.0.1:3000/admin/lead-discovery*',
         ],
         js: [
           'dist/contentScripts/index.global.js',

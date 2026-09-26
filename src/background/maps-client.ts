@@ -40,7 +40,7 @@ export class MapsClient implements MapsExecutor {
     await this.checkpoint()
     throw new GitsError(
       'maps_connection',
-      'Gits could not connect to the Google Maps tab. Reload that tab, allow Gits access to www.google.com in extension settings, then resume.',
+      'Rekah Hunt could not connect to the Google Maps tab. Reload that tab, allow Rekah Hunt access to www.google.com in extension settings, then resume.',
     )
   }
 
@@ -78,7 +78,38 @@ export class MapsClient implements MapsExecutor {
   }
 
   openBusiness(candidate: CandidateRef) {
-    return this.command<void>({ operation: 'openBusiness', candidate })
+    return this.openBusinessTab(candidate)
+  }
+
+  private async openBusinessTab(candidate: CandidateRef): Promise<void> {
+    let previousUrl: string | undefined
+    try {
+      previousUrl = (await browser.tabs.get(this.tabId)).url
+      await browser.tabs.update(this.tabId, { url: candidate.mapsUrl })
+    }
+    catch {
+      throw new GitsError(
+        'maps_connection',
+        'Google Maps could not open the selected business. Keep the research tab open, then resume.',
+      )
+    }
+    await this.waitForNavigation(previousUrl)
+    await this.waitUntilReady()
+  }
+
+  private async waitForNavigation(previousUrl: string | undefined): Promise<void> {
+    const deadline = Date.now() + 15000
+    while (Date.now() < deadline) {
+      await this.checkpoint()
+      try {
+        const tab = await browser.tabs.get(this.tabId)
+        if (tab.status === 'complete' && tab.url !== previousUrl)
+          return
+      }
+      catch {}
+      await new Promise(resolve => setTimeout(resolve, 250))
+    }
+    throw new GitsError('maps_connection', 'Google Maps did not finish opening the selected business. Reload the research tab, then resume.')
   }
 
   readBusiness(candidate: CandidateRef, query: string) {

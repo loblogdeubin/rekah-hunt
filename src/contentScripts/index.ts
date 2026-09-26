@@ -2,10 +2,37 @@ import browser from 'webextension-polyfill'
 import type { Runtime } from 'webextension-polyfill'
 import type { MapsCommand, Reply } from '../shared/types'
 import { safeError } from '../shared/errors'
+import { isDashboardCommand, isRekahDashboard } from '../shared/rekah-bridge'
 import { GoogleMapsExecutor } from './google-maps/executor'
 
+const onRekahDashboard = isRekahDashboard(location.href)
+
+if (onRekahDashboard) {
+  window.addEventListener('message', async (event) => {
+    if (event.source !== window || event.origin !== location.origin
+      || event.data?.source !== 'rekah-lead-discovery') return
+    if (event.data.type === 'ping') {
+      window.postMessage({ source: 'gits-extension', type: 'ready' }, location.origin)
+      return
+    }
+    if (event.data.type !== 'request' || typeof event.data.id !== 'string'
+      || event.data.id.length > 80) return
+    const command = event.data.command
+    if (!isDashboardCommand(command)) return
+    try {
+      const reply = await browser.runtime.sendMessage({ channel: 'gits-dashboard', command })
+      window.postMessage({ source: 'gits-extension', type: 'response', id: event.data.id, reply }, location.origin)
+    }
+    catch {
+      window.postMessage({ source: 'gits-extension', type: 'response', id: event.data.id,
+        reply: { ok: false, error: 'Ekstensi Rekah Hunt tidak merespons. Muat ulang ekstensi dan halaman Rekah.' } }, location.origin)
+    }
+  })
+  window.postMessage({ source: 'gits-extension', type: 'ready' }, location.origin)
+}
+
 let activeOperation: AbortController | undefined
-browser.runtime.onMessage.addListener(
+if (!onRekahDashboard) browser.runtime.onMessage.addListener(
   (raw: unknown, sender: Runtime.MessageSender) => {
     if (!raw || typeof raw !== 'object')
       return undefined

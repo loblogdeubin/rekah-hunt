@@ -3,6 +3,7 @@ import {
   canonicalPlaceId,
   collectResults,
   extractBusiness,
+  instagramProfileUrl,
   sameMapsPlace,
 } from '../contentScripts/google-maps/extractor'
 
@@ -10,6 +11,10 @@ beforeEach(() => {
   document.body.innerHTML = ''
 })
 describe('maps extraction', () => {
+  it('reads review counts from non-button labels without confusing Search reviews', () => {
+    document.body.innerHTML = '<div role="main"><h1>Coffee</h1><button aria-label="Search reviews"></button><span aria-label="155 reviews"></span></div>'
+    expect(extractBusiness({ id: 'one', name: 'Coffee', mapsUrl: '' }, '').reviewCount).toBe(155)
+  })
   it('does not include query parameters in a final feature ID', () => {
     expect(canonicalPlaceId('https://www.google.com/maps/place/Spa/data=!1sspa-one?entry=ttu&hl=en')).toBe('spa-one')
   })
@@ -82,6 +87,21 @@ describe('maps extraction', () => {
     })
     document.querySelector('p')!.textContent = 'Closed · Opens 9 AM'
     expect(extractBusiness(ref, '').businessStatus).toBe('active')
+  })
+  it('reads a business Instagram profile from Maps without accepting posts or unrelated links', () => {
+    document.body.innerHTML = '<div role="main"><h1>Coffee</h1><a data-item-id="authority" href="https://coffee.example">Website</a><a href="https://www.instagram.com/coffee.jogja/?hl=id">Instagram</a></div>'
+    expect(extractBusiness({ id: 'one', name: 'Coffee', mapsUrl: '' }, '').instagramUrl)
+      .toBe('https://www.instagram.com/coffee.jogja/')
+    expect(instagramProfileUrl('https://www.instagram.com/p/abc123/')).toBeUndefined()
+    expect(instagramProfileUrl('https://evil.example/coffee.jogja')).toBeUndefined()
+    expect(instagramProfileUrl('https://www.google.com/url?q=https%3A%2F%2Fwww.instagram.com%2Fcoffee.jogja%2F'))
+      .toBe('https://www.instagram.com/coffee.jogja/')
+  })
+  it('recognizes an Instagram profile when Maps lists it as the website', () => {
+    document.body.innerHTML = '<div role="main"><h1>Salon</h1><a data-item-id="authority" href="https://instagram.com/salon_sleman/">Website</a></div>'
+    expect(extractBusiness({ id: 'one', name: 'Salon', mapsUrl: '' }, '')).toMatchObject({
+      instagramUrl: 'https://www.instagram.com/salon_sleman/',
+    })
   })
   it('rejects missing details instead of inventing business data', () => {
     expect(() =>

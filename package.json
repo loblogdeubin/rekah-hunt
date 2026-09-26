@@ -1,10 +1,10 @@
 {
   "name": "gits",
-  "displayName": "Gits",
+  "displayName": "Rekah Hunt",
   "version": "0.0.1",
   "private": true,
   "packageManager": "pnpm@9.7.1",
-  "description": "Gits is a browser extension powered by Jev to search the leads data on the Google Maps",
+  "description": "Rekah Hunt researches local business leads on Google Maps with Jev",
   "scripts": {
     "dev": "npm run clear && cross-env NODE_ENV=development run-p dev:*",
     "dev-firefox": "npm run clear && cross-env NODE_ENV=development EXTENSION=firefox run-p dev:*",

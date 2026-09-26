@@ -5,14 +5,16 @@ import { MockDecisionEngine } from '../background/decision-engine'
 import { createSession, defaultConfig } from '../shared/search'
 import { GitsError } from '../shared/errors'
 
-const mock = vi.hoisted(() => ({ sendMessage: vi.fn() }))
+const mock = vi.hoisted(() => ({ sendMessage: vi.fn(), update: vi.fn(), get: vi.fn() }))
 vi.mock('webextension-polyfill', () => ({
-  default: { tabs: { sendMessage: mock.sendMessage } },
+  default: { tabs: { sendMessage: mock.sendMessage, update: mock.update, get: mock.get } },
 }))
 
 beforeEach(() => {
   vi.useFakeTimers()
   mock.sendMessage.mockReset()
+  mock.update.mockReset()
+  mock.get.mockReset()
 })
 afterEach(() => vi.useRealTimers())
 
@@ -103,5 +105,21 @@ describe('maps startup handshake', () => {
       code: 'maps_selectors',
       message: 'Missing search input',
     })
+  })
+
+  it('opens a selected business through the tab instead of a synthetic Maps click', async () => {
+    const candidate = {
+      id: 'spa-one',
+      name: 'Spa One',
+      mapsUrl: 'https://www.google.com/maps/place/Spa/data=!1sspa-one',
+    }
+    mock.update.mockResolvedValue({ id: 10 })
+    mock.get
+      .mockResolvedValueOnce({ url: 'https://www.google.com/maps/search/Spa', status: 'complete' })
+      .mockResolvedValueOnce({ url: candidate.mapsUrl, status: 'complete' })
+    mock.sendMessage.mockResolvedValue({ ok: true, data: { ready: true } })
+
+    await expect(new MapsClient(10).openBusiness(candidate)).resolves.toBeUndefined()
+    expect(mock.update).toHaveBeenCalledWith(10, { url: candidate.mapsUrl })
   })
 })
